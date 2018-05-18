@@ -97,6 +97,11 @@ public class ByteBuffer {
 	public void pushByteArray (byte[] b) {
 		this.pushByteArray(b, 0, b.length);
 	}
+	
+	public void pushSerializable (Serializable sr) {
+		byte[] bar_sr = ByteArrayConverter.serializableToArray(sr);
+		this.pushByteArray(bar_sr, 0, bar_sr.length);
+	}
 
 	/*RETRIEVE DATA*/
 	public byte retrieveByte () {
