@@ -3,7 +3,7 @@ import java.net.InetAddress;
 
 public class Client {
 
-	private CommandResult [] cmdr_queue;
+	private ByteBuffer [] cmdr_queue;
 	private UDPClient udpc;
 	private int size_call;
 	
@@ -18,12 +18,12 @@ public class Client {
 		//TODO test connection
 	}
 	
-	public CommandResult retrieveReturn (int i_queueIndex) {
+	public ByteBuffer retrieveReturn (int i_queueIndex) {
 		//blocks waiting for the return
 		//TODO implement interruption
 		while (cmdr_queue[i_queueIndex] == null);
 		
-		CommandResult result = cmdr_queue[i_queueIndex];
+		ByteBuffer result = cmdr_queue[i_queueIndex];
 		cmdr_queue[i_queueIndex] = null;
 		return result;
 	}
@@ -36,7 +36,7 @@ public class Client {
 		if (i == this.cmdr_queue.length) {
 			throw new QueueOverflowException();
 		}
-		this.cmdr_queue[i] = CommandResult.allocated();
+		this.cmdr_queue[i] = new ByteBuffer(1);
 		return i;
 	}
 	
@@ -54,7 +54,7 @@ public class Client {
 	}
 
 	//calls procedure and blocks, waiting for the result
-	public CommandResult call (String s_procedureName, Serializable... args) throws QueueOverflowException {
+	public ByteBuffer call (String s_procedureName, Serializable... args) throws QueueOverflowException {
 		return this.retrieveReturn(this.asyncCall(s_procedureName, args));
 	}
 
