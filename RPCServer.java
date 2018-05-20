@@ -20,20 +20,21 @@ public abstract class RPCServer {
 		this.size_args = size_args;
 	}
 	
-	public abstract ByteBuffer processCmd (UDPDatagram cmd);
+	public abstract ByteBuffer processCmd (String s_procedure, ByteBuffer args);
 	
 	public void executeNext () {
 		UDPDatagram dtgReceived = this.queueCmd.pop();	//blocks until there's something to pop
+		int i_port = dtgReceived.getBuffer().retrieveInt();
+		String s_proc = dtgReceived.getBuffer().retrieveLatinString();
 		ByteBuffer result;
 		UDPDatagram dtgSending;
 		UDPClient uc;
 		
 		//process data
-		result = this.processCmd(dtgReceived);
-		dtgReceived.getBuffer().rewind();
+		result = this.processCmd(s_proc, dtgReceived.getBuffer());
 		
 		//post result
-		uc = new UDPClient(dtgReceived.getBuffer().retrieveInt(), dtgReceived.getSender(), null);
+		uc = new UDPClient(i_port, dtgReceived.getSender(), null);
 		dtgSending = new UDPDatagram(result);
 		uc.send(dtgSending);
 		uc.close();
