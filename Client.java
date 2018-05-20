@@ -77,7 +77,6 @@ public class Client {
 		RetrieveReturnPacket run_udps = new RetrieveReturnPacket(i_cmdr);
 		
 		dtg_call.getBuffer().pushInt(run_udps.getPort());
-		dtg_call.getBuffer().pushInt(i_cmdr);
 		dtg_call.getBuffer().pushLatinString(s_procedureName);
 		for (Serializable sr : args) {
 			dtg_call.getBuffer().pushSerializable(sr);
