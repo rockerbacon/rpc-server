@@ -3,13 +3,42 @@ import java.net.InetAddress;
 
 public class Client {
 
-	private ByteBuffer [] cmdr_queue;
+	private ByteBuffer [] bb_queue;
+	private boolean [] b_allocated;
 	private UDPClient udpc;
 	private int size_call;
+	private int size_return;
 	
-	public Client (int i_queueSize, int size_call) {
-		this.cmdr_queue = new CommandResult[i_queueSize];
+	private class RetrieveReturnPacket extends Runnable {
+		private int i_cmdr;
+		private UDPServer udps;
+		
+		public RetrieveReturnPacket (int i_cmdr) {
+			this.i_cmdr = i_cmdr;
+			this.udps = new UDPServer(Client.this.size_return, null);
+		}
+		
+		public int getPort () {
+			return this.udps.getPort();
+		}
+		
+		@Override
+		public static void run () {
+			UPDDatagram dtg = this.udps.receive();
+			Client.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
+			this.udps.close();
+		}
+	};
+	
+	public Client (int size_queue, int size_call, int size_return) {
+		this.bb_queue = new CommandResult[size_queue];
+		this.b_allocated = new boolean[size_queue];
+		for (i = 0; i < b_allocated.length; i++) {
+			this.bb_queue[i] = null;
+			this.b_allocated[i] = false;
+		}
 		this.size_call = size_call;
+		this.size_return = size_return;
 	}
 	
 	public int connect (int port, InetAddress address) {
@@ -21,22 +50,23 @@ public class Client {
 	public ByteBuffer retrieveReturn (int i_queueIndex) {
 		//blocks waiting for the return
 		//TODO implement interruption
-		while (cmdr_queue[i_queueIndex] == null);
+		while (bb_queue[i_queueIndex] == null);
 		
-		ByteBuffer result = cmdr_queue[i_queueIndex];
-		cmdr_queue[i_queueIndex] = null;
+		ByteBuffer result = bb_queue[i_queueIndex];
+		b_allocated[i_queueIndex] = false;
+		bb_queue[i_queueIndex] = null;
 		return result;
 	}
 	
 	private int allocateCmdr () throws QueueOverflowException {
 		int i = 0;
-		while (i < this.cmdr_queue.length && this.cmdr_queue[i] != null) {
+		while (i < this.b_allocated.length && this.b_allocated[i] == true) {
 			i++;
 		}
-		if (i == this.cmdr_queue.length) {
+		if (i == this.b_allocated.length) {
 			throw new QueueOverflowException();
 		}
-		this.cmdr_queue[i] = new ByteBuffer(1);
+		this.b_allocated[i] = true;
 		return i;
 	}
 	
@@ -44,13 +74,17 @@ public class Client {
 	public int asyncCall (String s_procedureName, Serializable... args) throws QueueOverflowException {
 		int i_cmdr = this.allocateCmdr();
 		UDPDatagram dtg_call = new UDPDatagram(size_call);
+		RetrieveReturnPacket run_udps = new RetrieveReturnPacket(i_cmdr);
 		
+		dtg_call.getBuffer().pushInt(run_udps.getPort());
 		dtg_call.getBuffer().pushInt(i_cmdr);
 		dtg_call.getBuffer().pushLatinString(s_procedureName);
 		for (Serializable sr : args) {
 			dtg_call.getBuffer().pushSerializable(sr);
 		}
 		this.udpc.send(dtg_call);
+		
+		new Thread(run_udps).start();
 	}
 
 	//calls procedure and blocks, waiting for the result
