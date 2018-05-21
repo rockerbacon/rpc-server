@@ -38,8 +38,8 @@ public class TestServer extends RPCServer {
 		return bb_return;
 	}
 	
-	public TestServer (int size_queue, int size_return, int size_args) {
-		super(size_queue, size_return, size_args);
+	public TestServer () {
+		super(5, 128000, 128000);
 	}
 	
 }

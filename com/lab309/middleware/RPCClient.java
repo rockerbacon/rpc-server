@@ -8,7 +8,7 @@ public class RPCClient {
 	private ByteBuffer [] bb_queue;
 	private boolean [] b_allocated;
 	private UDPClient udpc;
-	private int size_call;
+	private int size_args;
 	private int size_return;
 	
 	private class RetrieveReturnPacket extends Runnable {
@@ -32,14 +32,14 @@ public class RPCClient {
 		}
 	};
 	
-	public RPCClient (int size_queue, int size_call, int size_return) {
+	public RPCClient (int size_queue, int size_return, int size_args) {
 		this.bb_queue = new CommandResult[size_queue];
 		this.b_allocated = new boolean[size_queue];
 		for (i = 0; i < b_allocated.length; i++) {
 			this.bb_queue[i] = null;
 			this.b_allocated[i] = false;
 		}
-		this.size_call = size_call;
+		this.size_args = size_args;
 		this.size_return = size_return;
 	}
 	
@@ -75,7 +75,7 @@ public class RPCClient {
 	//calls procedure without blocking, returns queue index used for retrieving the result later
 	public int asyncCall (String s_procedureName, Serializable... args) throws QueueOverflowException {
 		int i_cmdr = this.allocateCmdr();
-		UDPDatagram dtg_call = new UDPDatagram(size_call);
+		UDPDatagram dtg_call = new UDPDatagram(size_args);
 		RetrieveReturnPacket run_udps = new RetrieveReturnPacket(i_cmdr);
 		
 		dtg_call.getBuffer().pushInt(run_udps.getPort());
