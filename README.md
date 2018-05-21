@@ -2,7 +2,7 @@
 
 Here is provided a standard generic system for making RPCs.
 The system works as follows:
-1. Client picks unused index 'i' in a shared array;
+1. Client picks unused index *i* in a shared array;
 1. Client packs an UDP datagram containing an answer port followed by the name of the procedure and the arguments used by the procedure and sends it to the server;
 1. The server adds the received datagram to a queue;
 1. The server gets an item in the queue, executes the procedure, and sends an UDP datagram containing the procedure's return to the client through the previously specified port.
