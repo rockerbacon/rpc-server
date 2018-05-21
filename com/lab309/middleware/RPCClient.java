@@ -1,7 +1,9 @@
+package com.lab309.middleware;
+
 import com.lab309.network.UDPClient;
 import java.net.InetAddress;
 
-public class Client {
+public class RPCClient {
 
 	private ByteBuffer [] bb_queue;
 	private boolean [] b_allocated;
@@ -15,7 +17,7 @@ public class Client {
 		
 		public RetrieveReturnPacket (int i_cmdr) {
 			this.i_cmdr = i_cmdr;
-			this.udps = new UDPServer(Client.this.size_return, null);
+			this.udps = new UDPServer(RPCClient.this.size_return, null);
 		}
 		
 		public int getPort () {
@@ -25,12 +27,12 @@ public class Client {
 		@Override
 		public static void run () {
 			UPDDatagram dtg = this.udps.receive();
-			Client.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
+			RPCClient.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
 			this.udps.close();
 		}
 	};
 	
-	public Client (int size_queue, int size_call, int size_return) {
+	public RPCClient (int size_queue, int size_call, int size_return) {
 		this.bb_queue = new CommandResult[size_queue];
 		this.b_allocated = new boolean[size_queue];
 		for (i = 0; i < b_allocated.length; i++) {

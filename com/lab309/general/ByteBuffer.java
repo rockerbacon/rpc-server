@@ -1,5 +1,7 @@
 package com.lab309.general;
 
+import java.io.Serializable;
+
 public class ByteBuffer {
 	private byte[] buffer;
 	private int offset;

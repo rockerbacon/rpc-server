@@ -1,4 +1,4 @@
-
+package com.lab309.middleware;
 
 public class QueueOverflowException extends Exception {
 	public QueueOverflowException () {

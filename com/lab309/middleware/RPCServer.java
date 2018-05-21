@@ -1,28 +1,43 @@
+package com.lab309.middleware;
+
 import com.lab309.adt.ConcurrentStaticQueue;
 import com.lab309.general.ByteBuffer;
 import com.lab309.network.UDPDatagram;
 import com.lab309.network.UDPClient;
 import com.lab309.network.UDPServer;
 
+import java.io.Serializable;
 import java.io.IOException;
+
+import javax.crypto.IllegalBlockSizeException;
 
 public abstract class RPCServer {
 
 	private ConcurrentStaticQueue<UDPDatagram> queueCmd;
 	private boolean broutineExecute;
-	private UPDServer udps;
+	private UDPServer udps;
 	private int size_args;
+	private int size_return;
 
-	public RPCServer (int size_queue, int size_args) {
+	public RPCServer (int size_queue, int size_return, int size_args) {
 		this.queueCmd = new ConcurrentStaticQueue<UDPDatagram>(size_queue);
 		this.broutineExecute = false;
 		this.udps = null;
 		this.size_args = size_args;
+		this.size_return = size_return;
 	}
 	
-	public abstract ByteBuffer processCmd (String s_procedure, ByteBuffer args);
+	protected int getSizeArgs () {
+		return this.size_args;
+	}
 	
-	public void executeNext () {
+	protected int getSizeReturn () {
+		return this.size_return;
+	}
+	
+	protected abstract ByteBuffer processCmd (String s_procedure, ByteBuffer args);
+	
+	private void executeNext () throws IOException {
 		UDPDatagram dtgReceived = this.queueCmd.pop();	//blocks until there's something to pop
 		int i_port = dtgReceived.getBuffer().retrieveInt();
 		String s_proc = dtgReceived.getBuffer().retrieveLatinString();
@@ -45,7 +60,11 @@ public abstract class RPCServer {
 		new Thread ( new Runnable () { @Override public void run () {
 		
 			while (RPCServer.this.broutineExecute) {
-				RPCServer.this.executeNext();
+				try {
+					RPCServer.this.executeNext();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		
 		}}).start();
@@ -56,18 +75,22 @@ public abstract class RPCServer {
 	}
 	
 	public void startRoutineReceiveCmd (int i_port) {
-		this.udps = new UDPServer (i_port, this.size_args, null); 
-		new Thread ( new Runnable () { @Override public void run () {
-			UDPDatagram dtg;
-			try {
-				while (RPCServer.this.udps != null) {
-					dtg = RPCServer.udps.receive();
-					RPCServer.this.queueCmd.push(dtg);
+		try {
+			this.udps = new UDPServer (i_port, this.size_args, null); 
+			new Thread ( new Runnable () { @Override public void run () {
+				UDPDatagram dtg;
+				try {
+					while (RPCServer.this.udps != null) {
+						dtg = RPCServer.this.udps.receive();
+						RPCServer.this.queueCmd.push(dtg);
+					}
+				} catch (IOException e) {
+					System.out.println("Socket closed");
 				}
-			} catch (IOException e) {
-				System.out.println("Socket closed");
-			}
-		}}).start();
+			}}).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void stopRoutineReceiveCmd () {

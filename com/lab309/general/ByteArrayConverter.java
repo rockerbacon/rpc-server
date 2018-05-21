@@ -1,5 +1,6 @@
 package com.lab309.general;
 
+import java.io.Serializable;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
@@ -97,18 +98,32 @@ public abstract class ByteArrayConverter {
 		return array;
 	}
 	
-	public static byte[] serializableToArray (Serializable sr, byte[] array, int offset) throws IOException {
-		ObjectOutput out = new ObjectOutputStream(new ByteArrayOutputStream());
-		byte[] arr;
-		out.writeObject(sr);
-		arr = out.toByteArray();
-		return ByteArrayConverter.copyArrayTo(arr, 0, arr.length, array, offset);
+	public static byte[] serializableToArray (Serializable sr, byte[] array, int offset) {
+		try {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			ObjectOutputStream out = new ObjectOutputStream(bos);
+			byte[] arr;
+			out.writeObject(sr);
+			out.flush();
+			arr = bos.toByteArray();
+			return ByteArrayConverter.copyArrayTo(arr, 0, arr.length, array, offset);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
-	public static byte[] serializableToArray (Serializable sr) throws IOException {
-		ObjectOutput out = new ObjectOutputStream(new ByteArrayOutputStream());
-		out.writeObject(sr);
-		return out.toByteArray();
+	public static byte[] serializableToArray (Serializable sr) {
+		try {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			ObjectOutputStream out = new ObjectOutputStream(bos);
+			out.writeObject(sr);
+			out.flush();
+			return bos.toByteArray();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	//FROM ARRAY

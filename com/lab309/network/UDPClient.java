@@ -51,13 +51,18 @@ public class UDPClient implements Serializable {
 		}
 
 		/*METHODS*/
-		public void send (UDPDatagram datagram) throws IOException, IllegalBlockSizeException {
+		public void send (UDPDatagram datagram) throws IOException {
 			byte[] message;
 			//System.out.println ("Message before encryption:");	//debug
 			//System.out.println (ByteArrayConverter.toStringRepresentation(datagram.getBuffer().getByteArray()));	//debug
 			if (this.cipher != null) {
 
-				message = this.cipher.encrypt(datagram.getBuffer().getByteArray(), 0, datagram.getBuffer().getOffset());
+				try {
+					message = this.cipher.encrypt(datagram.getBuffer().getByteArray(), 0, datagram.getBuffer().getOffset());
+				} catch (IllegalBlockSizeException e) {
+					e.printStackTrace();
+					return;
+				}
 				//System.out.println ("Message after encryption:");	//debug
 				//System.out.println (ByteArrayConverter.toStringRepresentation(message));	//debug
 
