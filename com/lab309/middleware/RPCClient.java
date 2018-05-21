@@ -1,7 +1,13 @@
 package com.lab309.middleware;
 
+import com.lab309.general.ByteBuffer;
 import com.lab309.network.UDPClient;
+import com.lab309.network.UDPServer;
+import com.lab309.network.UDPDatagram;
+
 import java.net.InetAddress;
+import java.io.Serializable;
+import java.io.IOException;
 
 public class RPCClient {
 
@@ -11,13 +17,17 @@ public class RPCClient {
 	private int size_args;
 	private int size_return;
 	
-	private class RetrieveReturnPacket extends Runnable {
+	private class RetrieveReturnPacket implements Runnable {
 		private int i_cmdr;
 		private UDPServer udps;
 		
 		public RetrieveReturnPacket (int i_cmdr) {
-			this.i_cmdr = i_cmdr;
-			this.udps = new UDPServer(RPCClient.this.size_return, null);
+			try {
+				this.i_cmdr = i_cmdr;
+				this.udps = new UDPServer(RPCClient.this.size_return, null);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		public int getPort () {
@@ -25,17 +35,21 @@ public class RPCClient {
 		}
 		
 		@Override
-		public static void run () {
-			UPDDatagram dtg = this.udps.receive();
-			RPCClient.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
-			this.udps.close();
+		public void run () {
+			try {
+				UDPDatagram dtg = this.udps.receive();
+				RPCClient.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
+				this.udps.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	};
 	
 	public RPCClient (int size_queue, int size_return, int size_args) {
-		this.bb_queue = new CommandResult[size_queue];
+		this.bb_queue = new ByteBuffer[size_queue];
 		this.b_allocated = new boolean[size_queue];
-		for (i = 0; i < b_allocated.length; i++) {
+		for (int i = 0; i < b_allocated.length; i++) {
 			this.bb_queue[i] = null;
 			this.b_allocated[i] = false;
 		}
@@ -43,10 +57,15 @@ public class RPCClient {
 		this.size_return = size_return;
 	}
 	
-	public int connect (int port, InetAddress address) {
+	public void connect (int port, InetAddress address) throws IOException {
 		this.udpc = new UDPClient(port, address, null);
 		
 		//TODO test connection
+	}
+	
+	
+	public void close () {
+		this.udpc.close();
 	}
 	
 	public ByteBuffer retrieveReturn (int i_queueIndex) {
@@ -73,7 +92,7 @@ public class RPCClient {
 	}
 	
 	//calls procedure without blocking, returns queue index used for retrieving the result later
-	public int asyncCall (String s_procedureName, Serializable... args) throws QueueOverflowException {
+	public int asyncCall (String s_procedureName, Serializable... args) throws QueueOverflowException, IOException {
 		int i_cmdr = this.allocateCmdr();
 		UDPDatagram dtg_call = new UDPDatagram(size_args);
 		RetrieveReturnPacket run_udps = new RetrieveReturnPacket(i_cmdr);
@@ -86,10 +105,12 @@ public class RPCClient {
 		this.udpc.send(dtg_call);
 		
 		new Thread(run_udps).start();
+		
+		return i_cmdr;
 	}
 
 	//calls procedure and blocks, waiting for the result
-	public ByteBuffer call (String s_procedureName, Serializable... args) throws QueueOverflowException {
+	public ByteBuffer call (String s_procedureName, Serializable... args) throws QueueOverflowException, IOException {
 		return this.retrieveReturn(this.asyncCall(s_procedureName, args));
 	}
 

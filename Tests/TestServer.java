@@ -20,7 +20,12 @@ public class TestServer extends RPCServer {
 				double b = args.retrieveDouble();
 				//execute computation inside switch case
 				double sum = a+b;
-				double mult = a*b;
+				try {
+					Thread.sleep(1000); //supose an expensive operation that takes about 1s to compute
+				} catch (InterruptedException e) {
+					System.out.println("Thread interrupted");
+				}
+				double mult = a*b;	
 				//pack return
 				bb_return.pushDouble(sum);
 				bb_return.pushDouble(mult);
@@ -40,6 +45,13 @@ public class TestServer extends RPCServer {
 	
 	public TestServer () {
 		super(5, 128000, 128000);
+		this.startRoutineReceiveCmd(10000);
+		this.startRoutineExecute();
+	}
+	
+	public void close() {
+		this.stopRoutineReceiveCmd();
+		this.stopRoutineExecute();
 	}
 	
 }
