@@ -1,6 +1,8 @@
-import com.lab309.middleware.RPCServer;
-import com.lab309.general.ByteBuffer;
+package Tests;
 
+import com.lab309.middleware.RPCServer;
+
+import com.lab309.general.ByteBuffer;
 
 public class TestServer extends RPCServer {
 
@@ -44,7 +46,7 @@ public class TestServer extends RPCServer {
 	}
 	
 	public TestServer () {
-		super(5, 128000, 128000);
+		super(5, 10000, 10000);
 		this.startRoutineReceiveCmd(10000);
 		this.startRoutineExecute();
 	}

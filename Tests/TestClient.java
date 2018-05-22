@@ -1,15 +1,17 @@
+package Tests;
+
+import com.lab309.middleware.QueueOverflowException;
 import com.lab309.middleware.RPCClient;
+
 import com.lab309.general.ByteBuffer;
 
 import java.net.InetAddress;
-
-import com.lab309.middleware.QueueOverflowException;
 
 import java.io.IOException;
 
 public class TestClient {
 
-	public class Test1Return {
+	public static class Test1Return {
 		public double sum;
 		public double mult;
 	}
@@ -18,7 +20,7 @@ public class TestClient {
 	
 	public TestClient () {
 		try {
-			this.rpcc = new RPCClient(5, 128000, 128000);
+			this.rpcc = new RPCClient(5, 10000, 10000);
 			this.rpcc.connect(10000, InetAddress.getByName("localhost"));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -61,6 +63,10 @@ public class TestClient {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public void close() {
+		this.rpcc.close();
 	}
 	
 }
