@@ -45,9 +45,9 @@ public class TestServer extends RPCServer {
 		return bb_return;
 	}
 	
-	public TestServer () {
+	public TestServer (int port) {
 		super(5, 10000, 10000);
-		this.startRoutineReceiveCmd(10000);
+		this.startRoutineReceiveCmd(port);
 		this.startRoutineExecute();
 	}
 	

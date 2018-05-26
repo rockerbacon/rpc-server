@@ -38,6 +38,7 @@ public class RPCClient {
 		public void run () {
 			try {
 				UDPDatagram dtg = this.udps.receive();
+				System.out.println("Client received an answer on index "+this.i_cmdr);	//debug
 				RPCClient.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
 				this.udps.close();
 			} catch (IOException e) {
@@ -71,7 +72,9 @@ public class RPCClient {
 	public ByteBuffer retrieveReturn (int i_queueIndex) {
 		//blocks waiting for the return
 		//TODO implement interruption
+		System.out.println("Waiting for answer to be published on index "+i_queueIndex);	//debug
 		while (bb_queue[i_queueIndex] == null);
+		System.out.println("Processing answer published on index "+i_queueIndex);	//debug
 		
 		ByteBuffer result = bb_queue[i_queueIndex];
 		b_allocated[i_queueIndex] = false;
@@ -102,6 +105,8 @@ public class RPCClient {
 		for (Serializable sr : args) {
 			dtg_call.getBuffer().pushSerializable(sr);
 		}
+		
+		System.out.println("Client sent a request");	//debug
 		this.udpc.send(dtg_call);
 		
 		new Thread(run_udps).start();

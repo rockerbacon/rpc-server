@@ -1,6 +1,6 @@
 package com.lab309.middleware;
 
-import com.lab309.adt.ConcurrentStaticQueue;
+import com.lab309.adt.ProductionQueue;
 import com.lab309.general.ByteBuffer;
 import com.lab309.network.UDPDatagram;
 import com.lab309.network.UDPClient;
@@ -13,14 +13,14 @@ import javax.crypto.IllegalBlockSizeException;
 
 public abstract class RPCServer {
 
-	private ConcurrentStaticQueue<UDPDatagram> queueCmd;
+	private ProductionQueue<UDPDatagram> que_cmd;
 	private boolean broutineExecute;
 	private UDPServer udps;
 	private int size_args;
 	private int size_return;
 
 	public RPCServer (int size_queue, int size_return, int size_args) {
-		this.queueCmd = new ConcurrentStaticQueue<UDPDatagram>(size_queue);
+		this.que_cmd = new ProductionQueue<UDPDatagram>(size_queue);
 		this.broutineExecute = false;
 		this.udps = null;
 		this.size_args = size_args;
@@ -38,7 +38,7 @@ public abstract class RPCServer {
 	protected abstract ByteBuffer processCmd (String s_procedure, ByteBuffer args);
 	
 	private void executeNext () throws IOException {
-		UDPDatagram dtgReceived = this.queueCmd.pop();	//blocks until there's something to pop
+		UDPDatagram dtgReceived = this.que_cmd.pop();	//blocks until there's something to pop
 		int i_port = dtgReceived.getBuffer().retrieveInt();
 		String s_proc = dtgReceived.getBuffer().retrieveLatinString();
 		ByteBuffer result;
@@ -82,7 +82,9 @@ public abstract class RPCServer {
 				try {
 					while (RPCServer.this.udps != null) {
 						dtg = RPCServer.this.udps.receive();
-						RPCServer.this.queueCmd.push(dtg);
+						System.out.println("Server received a request");	//debug
+						RPCServer.this.que_cmd.push(dtg);
+						System.out.println("Server published a request");	//debug
 					}
 				} catch (IOException e) {
 					System.out.println("Socket closed");

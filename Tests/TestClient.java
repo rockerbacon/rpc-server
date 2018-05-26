@@ -18,10 +18,10 @@ public class TestClient {
 
 	private RPCClient rpcc;
 	
-	public TestClient () {
+	public TestClient (int port) {
 		try {
 			this.rpcc = new RPCClient(5, 10000, 10000);
-			this.rpcc.connect(10000, InetAddress.getByName("localhost"));
+			this.rpcc.connect(port, InetAddress.getByName("localhost"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -31,11 +31,11 @@ public class TestClient {
 		try {
 			Test1Return result = new Test1Return();
 		
-			int i_return = this.rpcc.asyncCall("test1", a, b);	//call function without blocking for the return now
+			int i_return = this.rpcc.asyncCall("test1", a, b);	//call function without blocking for the return
 		
 			Thread.sleep(800);	//suppose an expensive operation that takes about 800ms to compute
 		
-			ByteBuffer bb_return = this.rpcc.retrieveReturn(i_return);	//blocks waiting for the return. Kind of like doing a join with the Server thread
+			ByteBuffer bb_return = this.rpcc.retrieveReturn(0);	//blocks waiting for the return. Kind of like doing a join with the Server thread
 		
 			result.sum = bb_return.retrieveDouble();
 			result.mult = bb_return.retrieveDouble();

@@ -12,8 +12,8 @@ public class TestMain {
 	}
 
 	public static void main (String args[]) {
-		TestServer ts = new TestServer();
-		TestClient tc = new TestClient();
+		TestServer ts = new TestServer(30006);
+		TestClient tc = new TestClient(30006);
 		TestClient.Test1Return r = new TestClient.Test1Return();
 		int	a = 5,
 			b = 6;
@@ -24,8 +24,8 @@ public class TestMain {
 		TestMain.test("Test 1 sum", r.sum, a+b);
 		TestMain.test("Test 1 mult", r.mult, a*b);
 		
-		sr = tc.test2(s);
-		TestMain.test("Test 2", sr, s.toUpperCase());
+		//sr = tc.test2(s);
+		//TestMain.test("Test 2", sr, s.toUpperCase());
 		
 		ts.close();
 		tc.close();
