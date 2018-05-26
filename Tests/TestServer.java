@@ -4,6 +4,8 @@ import com.lab309.middleware.RPCServer;
 
 import com.lab309.general.ByteBuffer;
 
+import java.io.Serializable;
+
 public class TestServer extends RPCServer {
 
 	private String upperCase (String s) {
@@ -12,37 +14,50 @@ public class TestServer extends RPCServer {
 
 	//override methods
 	@Override
-	public ByteBuffer processCmd (String s_procedure, ByteBuffer args) {
-		ByteBuffer bb_return = new ByteBuffer(this.getSizeReturn());
+	public Serializable processCmd (String s_procedure, Object[] args) {
 		switch (s_procedure) {
+		
 			//returns sum and multiplication of the two values passed
 			case "test1":
+			
 				//retrieve arguments
-				double a = args.retrieveDouble();
-				double b = args.retrieveDouble();
+				double a = ((Double)args[0]).doubleValue();
+				double b = ((Double)args[1]).doubleValue();
+				
 				//execute computation inside switch case
-				double sum = a+b;
+				Test1Return ret = new Test1Return();
+				ret.sum = a+b;
+				
+				//SIMULATING EXPENSIVE OPERATION
 				try {
-					Thread.sleep(1000); //supose an expensive operation that takes about 1s to compute
+					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					System.out.println("Thread interrupted");
 				}
-				double mult = a*b;	
-				//pack return
-				bb_return.pushDouble(sum);
-				bb_return.pushDouble(mult);
-			break;
+				//SIMULATING EXPENSIVE OPERATION
+				
+				ret.mult = a*b;
+				
+				//return result
+				return ret;
+			
 			//returns string in uppercase
 			case "test2":
+			
 				//retrieve arguments
-				String s_arg = args.retrieveString();
+				String s_arg = (String)args[0];
+				
 				//execute computation in external method to avoid pollution inside switch case
 				String s_return = this.upperCase(s_arg);
-				//pack return
-				bb_return.pushString(s_return);
-			break;
+				
+				//return result
+				return s_return;
+			
 		}
-		return bb_return;
+		
+		//returns null if the function name that was passed was not declared. This will be used by the server to raise an error
+		return null;
+		
 	}
 	
 	public TestServer (int port) {

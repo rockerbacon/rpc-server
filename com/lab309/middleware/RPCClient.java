@@ -12,26 +12,26 @@ import java.io.IOException;
 public class RPCClient {
 
 	private class AnswerSlot {
-		private ByteBuffer bb_content;
+		private Object o_content;
 		private boolean b_available;
 		private Object lk;
 		
 		public AnswerSlot() {
-			this.bb_content = null;
+			this.o_content = null;
 			this.b_available = true;
 			this.lk = new Object();
 		}
 		
-		public ByteBuffer retrieveContent () {
-			ByteBuffer retrieved = null;
+		public Object retrieveContent () {
+			Object retrieved = null;
 			try {
-				if (this.bb_content == null) {
+				if (this.o_content == null) {
 					synchronized(this.lk) {
 						this.lk.wait();
 					}
 				}
-				retrieved = this.bb_content;
-				this.bb_content = null;
+				retrieved = this.o_content;
+				this.o_content = null;
 				this.b_available = true;
 			} catch (InterruptedException e) {
 				System.err.println("Content retrieval interrupted");
@@ -40,10 +40,10 @@ public class RPCClient {
 			return retrieved;
 		}
 		
-		public void store (ByteBuffer bb_content) {
-			if (this.bb_content == null) {
+		public void store (ByteBuffer bb_content) throws IOException, ClassNotFoundException {
+			if (this.o_content == null) {
 				synchronized(this.lk) {
-					this.bb_content = bb_content;
+					this.o_content = bb_content.retrieveSerializable();
 					this.lk.notify();
 				}
 			}
@@ -84,11 +84,13 @@ public class RPCClient {
 		@Override
 		public void run () {
 			try {
+			
 				UDPDatagram dtg = this.udps.receive();
 				//System.out.println("Client received an answer on index "+this.i_cmdr);	//debug
 				RPCClient.this.ans_array[this.i_cmdr].store(dtg.getBuffer());
 				this.udps.close();
-			} catch (IOException e) {
+				
+			} catch (IOException|ClassNotFoundException e) {
 				e.printStackTrace();
 			}
 		}
@@ -114,11 +116,9 @@ public class RPCClient {
 		this.udpc.close();
 	}
 	
-	public ByteBuffer retrieveReturn (int i_queueIndex) {
-		//blocks waiting for the return
-		ByteBuffer result = ans_array[i_queueIndex].retrieveContent();
-		
-		return result;
+	public Object retrieveReturn (int i_queueIndex) {
+		//blocks waiting for the return of the remote procedure
+		return ans_array[i_queueIndex].retrieveContent();
 	}
 	
 	private int allocateCmdr () throws QueueOverflowException {
@@ -141,6 +141,7 @@ public class RPCClient {
 		
 		dtg_call.getBuffer().pushInt(run_udps.getPort());
 		dtg_call.getBuffer().pushLatinString(s_procedureName);
+		dtg_call.getBuffer().pushInt(args.length);
 		for (Serializable sr : args) {
 			dtg_call.getBuffer().pushSerializable(sr);
 		}
@@ -154,7 +155,7 @@ public class RPCClient {
 	}
 
 	//calls procedure and blocks, waiting for the result
-	public ByteBuffer call (String s_procedureName, Serializable... args) throws QueueOverflowException, IOException {
+	public Object call (String s_procedureName, Serializable... args) throws QueueOverflowException, IOException {
 		return this.retrieveReturn(this.asyncCall(s_procedureName, args));
 	}
 

@@ -12,11 +12,11 @@ public class TestMain {
 	}
 
 	public static void main (String args[]) {
-		TestServer ts = new TestServer(30007);
-		TestClient tc = new TestClient(30007);
-		TestClient.Test1Return r = new TestClient.Test1Return();
-		int	a = 5,
-			b = 6;
+		TestServer ts = new TestServer(30008);
+		TestClient tc = new TestClient(30008);
+		Test1Return r;
+		double	a = 5,
+				b = 6;
 			
 		String s = "uppercase", sr;
 		

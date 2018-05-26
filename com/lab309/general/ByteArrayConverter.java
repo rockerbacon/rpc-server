@@ -3,6 +3,9 @@ package com.lab309.general;
 import java.io.Serializable;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
+
 import java.io.IOException;
 
 /**
@@ -117,9 +120,16 @@ public abstract class ByteArrayConverter {
 		try {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			ObjectOutputStream out = new ObjectOutputStream(bos);
+			byte[] arr;
+			
 			out.writeObject(sr);
 			out.flush();
-			return bos.toByteArray();
+			arr = bos.toByteArray();
+			
+			out.close();
+			bos.close();
+			
+			return arr;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -235,6 +245,14 @@ public abstract class ByteArrayConverter {
 		}
 
 		return new String(builder);
+	}
+	
+	public static Object serializableFromArray (byte[] array, int offset) throws IOException, ClassNotFoundException {
+		ByteArrayInputStream bas = new ByteArrayInputStream(array, offset, array.length-offset);
+		ObjectInputStream ois = new ObjectInputStream(bas);
+		Object sr = ois.readObject();
+		
+		return sr;
 	}
 
 	/*ARRAY METHODS*/

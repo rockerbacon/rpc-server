@@ -1,6 +1,10 @@
 package com.lab309.general;
 
 import java.io.Serializable;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
+
+import java.io.IOException;
 
 public class ByteBuffer {
 	private byte[] buffer;
@@ -32,6 +36,10 @@ public class ByteBuffer {
 
 	public int getOffset () {
 		return this.offset;
+	}
+	
+	public int available () {
+		return this.buffer.length-this.offset;
 	}
 	
 	/*METHODS*/
@@ -176,6 +184,16 @@ public class ByteBuffer {
 		ByteArrayConverter.copyArrayTo(this.buffer, this.offset, this.offset+size, output, outputOffset);
 		this.offset += (size > 0) ? size : 0;
 		return output;
+	}
+	
+	public Object retrieveSerializable () throws IOException, ClassNotFoundException {
+		ByteArrayInputStream bas = new ByteArrayInputStream(this.buffer, this.offset, this.buffer.length-this.offset);
+		ObjectInputStream ois = new ObjectInputStream(bas);
+		Object read = ois.readObject();
+		
+		this.offset = this.buffer.length-bas.available();
+		
+		return read;
 	}
 	
 	/*DELETE DATA*/

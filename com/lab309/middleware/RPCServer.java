@@ -1,5 +1,8 @@
 package com.lab309.middleware;
 
+import java.util.LinkedList;
+import java.util.Iterator;
+
 import com.lab309.adt.ProductionQueue;
 import com.lab309.general.ByteBuffer;
 import com.lab309.network.UDPDatagram;
@@ -35,7 +38,7 @@ public abstract class RPCServer {
 		return this.size_return;
 	}
 	
-	protected abstract ByteBuffer processCmd (String s_procedure, ByteBuffer args);
+	protected abstract Serializable processCmd (String s_procedure, Object args[]);
 		
 	public void startRoutineExecute () {
 		broutineExecute = true;
@@ -45,25 +48,41 @@ public abstract class RPCServer {
 		
 				while (RPCServer.this.broutineExecute) {
 				
-					UDPDatagram dtgReceived = RPCServer.this.que_cmd.pop();	//blocks until there's something to pop
-					int i_port = dtgReceived.getBuffer().retrieveInt();
-					String s_proc = dtgReceived.getBuffer().retrieveLatinString();
-					ByteBuffer result;
-					UDPDatagram dtgSending;
+					UDPDatagram dtg_received = RPCServer.this.que_cmd.pop();	//blocks until there's something to pop
+					ByteBuffer bb_received = dtg_received.getBuffer();
+					int i_port = bb_received.retrieveInt();
+					String s_proc = bb_received.retrieveLatinString();
+					int c_args = bb_received.retrieveInt();
+					Serializable result;
+					UDPDatagram dtg_send;
 					UDPClient uc;
+					Object[] arr_args;
 		
-					//process data
-					result = RPCServer.this.processCmd(s_proc, dtgReceived.getBuffer());
+					//retrieve data					
+					arr_args = new Object[c_args];
+					for (int i = 0; i < c_args; i++) {
+						arr_args[i] = bb_received.retrieveSerializable();
+					}
+					
+					//execute procedure
+					result = RPCServer.this.processCmd(s_proc, arr_args);
 	
+					if (result == null) {
+						//TODO inform of function not declared error
+					}
+	
+					//pack result
+					dtg_send = new UDPDatagram(RPCServer.this.size_return);
+					dtg_send.getBuffer().pushSerializable(result);
+					
 					//post result
-					uc = new UDPClient(i_port, dtgReceived.getSender(), null);
-					dtgSending = new UDPDatagram(result);
-					uc.send(dtgSending);
+					uc = new UDPClient(i_port, dtg_received.getSender(), null);
+					uc.send(dtg_send);
 					uc.close();
 				
 				}
 			
-			} catch (IOException e) {
+			} catch (IOException|ClassNotFoundException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {
 				System.err.println("Executing commands queue stopped");

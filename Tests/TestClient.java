@@ -11,11 +11,6 @@ import java.io.IOException;
 
 public class TestClient {
 
-	public static class Test1Return {
-		public double sum;
-		public double mult;
-	}
-
 	private RPCClient rpcc;
 	
 	public TestClient (int port) {
@@ -29,18 +24,19 @@ public class TestClient {
 	
 	public Test1Return test1 (double a, double b) {
 		try {
+		
 			Test1Return result = new Test1Return();
 		
 			int i_return = this.rpcc.asyncCall("test1", a, b);	//call function without blocking for the return
+
+			//SIMULATING EXPENSIVE OPERATION		
+			Thread.sleep(800);
+			//SIMULATING EXPENSIVE OPERATION
 		
-			Thread.sleep(800);	//suppose an expensive operation that takes about 800ms to compute
-		
-			ByteBuffer bb_return = this.rpcc.retrieveReturn(0);	//blocks waiting for the return. Kind of like doing a join with the Server thread
-		
-			result.sum = bb_return.retrieveDouble();
-			result.mult = bb_return.retrieveDouble();
+			result = (Test1Return)this.rpcc.retrieveReturn(0);	//blocks waiting for the return. Similar to a join between the main thread and the server thread
 		
 			return result;
+			
 		} catch (QueueOverflowException e) {
 			System.out.println(e.getMessage());
 		} catch (InterruptedException e) {
@@ -55,8 +51,8 @@ public class TestClient {
 	
 	public String test2 (String s) {
 		try {
-			ByteBuffer bb_return = this.rpcc.call("test2", s);	//call function and blocks waiting for the result
-			return bb_return.retrieveString();
+			String result = (String)this.rpcc.call("test2", s);	//call function and blocks waiting for the result
+			return result;
 		} catch (QueueOverflowException e) {
 			System.out.println(e.getMessage());
 		} catch (IOException e) {
