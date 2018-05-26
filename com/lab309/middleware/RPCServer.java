@@ -36,35 +36,37 @@ public abstract class RPCServer {
 	}
 	
 	protected abstract ByteBuffer processCmd (String s_procedure, ByteBuffer args);
-	
-	private void executeNext () throws IOException {
-		UDPDatagram dtgReceived = this.que_cmd.pop();	//blocks until there's something to pop
-		int i_port = dtgReceived.getBuffer().retrieveInt();
-		String s_proc = dtgReceived.getBuffer().retrieveLatinString();
-		ByteBuffer result;
-		UDPDatagram dtgSending;
-		UDPClient uc;
 		
-		//process data
-		result = this.processCmd(s_proc, dtgReceived.getBuffer());
-		
-		//post result
-		uc = new UDPClient(i_port, dtgReceived.getSender(), null);
-		dtgSending = new UDPDatagram(result);
-		uc.send(dtgSending);
-		uc.close();
-	}
-	
 	public void startRoutineExecute () {
 		broutineExecute = true;
 		new Thread ( new Runnable () { @Override public void run () {
 		
-			while (RPCServer.this.broutineExecute) {
-				try {
-					RPCServer.this.executeNext();
-				} catch (IOException e) {
-					e.printStackTrace();
+			try {
+		
+				while (RPCServer.this.broutineExecute) {
+				
+					UDPDatagram dtgReceived = RPCServer.this.que_cmd.pop();	//blocks until there's something to pop
+					int i_port = dtgReceived.getBuffer().retrieveInt();
+					String s_proc = dtgReceived.getBuffer().retrieveLatinString();
+					ByteBuffer result;
+					UDPDatagram dtgSending;
+					UDPClient uc;
+		
+					//process data
+					result = RPCServer.this.processCmd(s_proc, dtgReceived.getBuffer());
+	
+					//post result
+					uc = new UDPClient(i_port, dtgReceived.getSender(), null);
+					dtgSending = new UDPDatagram(result);
+					uc.send(dtgSending);
+					uc.close();
+				
 				}
+			
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				System.err.println("Executing commands queue stopped");
 			}
 		
 		}}).start();
@@ -72,6 +74,7 @@ public abstract class RPCServer {
 	
 	public void stopRoutineExecute () {
 		broutineExecute = false;
+		this.que_cmd.interrupt();
 	}
 	
 	public void startRoutineReceiveCmd (int i_port) {
@@ -82,12 +85,14 @@ public abstract class RPCServer {
 				try {
 					while (RPCServer.this.udps != null) {
 						dtg = RPCServer.this.udps.receive();
-						System.out.println("Server received a request");	//debug
+						//System.out.println("Server received a request");	//debug
 						RPCServer.this.que_cmd.push(dtg);
-						System.out.println("Server published a request");	//debug
+						//System.out.println("Server published a request");	//debug
 					}
 				} catch (IOException e) {
-					System.out.println("Socket closed");
+					System.err.println("Socket closed");
+				} catch (InterruptedException e) {
+					System.err.println("Receiving commands queue stoped");
 				}
 			}}).start();
 		} catch (IOException e) {

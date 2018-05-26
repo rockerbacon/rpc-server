@@ -6,15 +6,17 @@ public class ProductionNotifier {
 	private int size_count;
 	private Object lk_up;
 	private Object lk_down;
+	private boolean b_interrupted;
 	
 	public ProductionNotifier (int size_count) {
 		this.i_count = 0;
 		this.size_count = size_count;
 		this.lk_up = new Object();
 		this.lk_down = new Object();
+		this.b_interrupted = false;
 	}
 	
-	public void requestSpace () {
+	public void requestSpace () throws InterruptedException {
 		boolean b_wait;
 		
 		//checks for access to critical area
@@ -23,13 +25,11 @@ public class ProductionNotifier {
 		}
 		//wait for access to critical area
 		if (b_wait) {
-			try {
-				synchronized(this.lk_up) {
-					this.lk_up.wait();
-				}	
-			} catch (InterruptedException e) {
-				//TODO log interruption
-				System.err.println("Space request aborted");
+			synchronized(this.lk_up) {
+				this.lk_up.wait();
+			}
+			if (this.b_interrupted) {
+				throw new InterruptedException();
 			}
 		}
 		
@@ -43,7 +43,7 @@ public class ProductionNotifier {
 		}
 	}
 	
-	public void requestProduct () {
+	public void requestProduct () throws InterruptedException {
 		boolean b_wait;
 		
 		//checks for access to critical area
@@ -52,13 +52,11 @@ public class ProductionNotifier {
 		}
 		//wait for access to critical area
 		if (b_wait) {
-			try {
-				synchronized(this.lk_down) {
-					this.lk_down.wait();
-				}	
-			} catch (InterruptedException e) {
-				//TODO log interruption
-				System.err.println("Space request aborted");
+			synchronized(this.lk_down) {
+				this.lk_down.wait();
+			}
+			if (this.b_interrupted) {
+				throw new InterruptedException();
 			}
 		}
 		
@@ -71,4 +69,19 @@ public class ProductionNotifier {
 			this.lk_up.notify();
 		}
 	}
+	
+	public void interrupt () {
+		this.b_interrupted = true;
+		synchronized(this.lk_up) {
+			this.lk_up.notifyAll();
+		}
+		synchronized(this.lk_down) {
+			this.lk_down.notifyAll();
+		}
+	}
+	
+	public void reset () {
+		this.b_interrupted = false;
+	}
+	
 }

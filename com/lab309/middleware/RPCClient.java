@@ -11,8 +11,55 @@ import java.io.IOException;
 
 public class RPCClient {
 
-	private ByteBuffer [] bb_queue;
-	private boolean [] b_allocated;
+	private class AnswerSlot {
+		private ByteBuffer bb_content;
+		private boolean b_available;
+		private Object lk;
+		
+		public AnswerSlot() {
+			this.bb_content = null;
+			this.b_available = true;
+			this.lk = new Object();
+		}
+		
+		public ByteBuffer retrieveContent () {
+			ByteBuffer retrieved = null;
+			try {
+				if (this.bb_content == null) {
+					synchronized(this.lk) {
+						this.lk.wait();
+					}
+				}
+				retrieved = this.bb_content;
+				this.bb_content = null;
+				this.b_available = true;
+			} catch (InterruptedException e) {
+				System.err.println("Content retrieval interrupted");
+			}
+			
+			return retrieved;
+		}
+		
+		public void store (ByteBuffer bb_content) {
+			if (this.bb_content == null) {
+				synchronized(this.lk) {
+					this.bb_content = bb_content;
+					this.lk.notify();
+				}
+			}
+		}
+		
+		public boolean allocate () {
+			if (this.b_available) {
+				this.b_available = false;
+				return true;
+			}
+			return false;
+		}
+		
+	}
+
+	private AnswerSlot [] ans_array;
 	private UDPClient udpc;
 	private int size_args;
 	private int size_return;
@@ -38,8 +85,8 @@ public class RPCClient {
 		public void run () {
 			try {
 				UDPDatagram dtg = this.udps.receive();
-				System.out.println("Client received an answer on index "+this.i_cmdr);	//debug
-				RPCClient.this.bb_queue[this.i_cmdr] = dtg.getBuffer();
+				//System.out.println("Client received an answer on index "+this.i_cmdr);	//debug
+				RPCClient.this.ans_array[this.i_cmdr].store(dtg.getBuffer());
 				this.udps.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -48,11 +95,9 @@ public class RPCClient {
 	};
 	
 	public RPCClient (int size_queue, int size_return, int size_args) {
-		this.bb_queue = new ByteBuffer[size_queue];
-		this.b_allocated = new boolean[size_queue];
-		for (int i = 0; i < b_allocated.length; i++) {
-			this.bb_queue[i] = null;
-			this.b_allocated[i] = false;
+		this.ans_array = new AnswerSlot[size_queue];
+		for (int i = 0; i < ans_array.length; i++) {
+			this.ans_array[i] = new AnswerSlot();
 		}
 		this.size_args = size_args;
 		this.size_return = size_return;
@@ -71,26 +116,20 @@ public class RPCClient {
 	
 	public ByteBuffer retrieveReturn (int i_queueIndex) {
 		//blocks waiting for the return
-		//TODO implement interruption
-		System.out.println("Waiting for answer to be published on index "+i_queueIndex);	//debug
-		while (bb_queue[i_queueIndex] == null);
-		System.out.println("Processing answer published on index "+i_queueIndex);	//debug
+		ByteBuffer result = ans_array[i_queueIndex].retrieveContent();
 		
-		ByteBuffer result = bb_queue[i_queueIndex];
-		b_allocated[i_queueIndex] = false;
-		bb_queue[i_queueIndex] = null;
 		return result;
 	}
 	
 	private int allocateCmdr () throws QueueOverflowException {
 		int i = 0;
-		while (i < this.b_allocated.length && this.b_allocated[i] == true) {
+		while (i < this.ans_array.length && !this.ans_array[i].allocate()) {
 			i++;
 		}
-		if (i == this.b_allocated.length) {
+		if (i == this.ans_array.length) {
 			throw new QueueOverflowException();
 		}
-		this.b_allocated[i] = true;
+		
 		return i;
 	}
 	
@@ -106,7 +145,7 @@ public class RPCClient {
 			dtg_call.getBuffer().pushSerializable(sr);
 		}
 		
-		System.out.println("Client sent a request");	//debug
+		//System.out.println("Client sent a request");	//debug
 		this.udpc.send(dtg_call);
 		
 		new Thread(run_udps).start();
